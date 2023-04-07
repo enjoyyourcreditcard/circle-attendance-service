@@ -19,6 +19,11 @@ func NewAttendanceUsecase(a domain.AttendanceRepository, timeout time.Duration) 
 	}
 }
 
+func (au attendanceUsecase) GetUserAttendanceMonthly(ctx context.Context, formatedCurrentMY string, userId string) (domain.AttendanceMonthly, error) {
+	res, err := au.attendanceRepo.GetUserAttendanceMonthly(ctx, formatedCurrentMY, userId)
+	return res, err
+}
+
 func (au attendanceUsecase) CheckAbsen(ctx context.Context, userId string, formatedCurrentDate string) (int, error) {
 	res, err := au.attendanceRepo.CheckAbsen(ctx, userId, formatedCurrentDate)
 	return res, err
@@ -45,7 +50,7 @@ func (au attendanceUsecase) PostStopAbsen(ctx context.Context, endAttendance *do
 	var attendance domain.Attendance
 	
 	latestAttendance, err := au.attendanceRepo.GetLatestUserAbsen(ctx, attendance, userId)
-	if err != nil { return "Attendance not found", err }
+	if err != nil { return "", err }
 	
 	attendanceId 	:= latestAttendance.ID
 	loc, err 		:= time.LoadLocation("Local")
@@ -53,7 +58,7 @@ func (au attendanceUsecase) PostStopAbsen(ctx context.Context, endAttendance *do
 
 	now 				:= time.Now()
 	parsedStartAt, err 	:= time.ParseInLocation("02-01-2006 15:04:05", latestAttendance.StartAt, loc)
-	if err != nil { return fmt.Sprintf("There's a problem while parsing %s", latestAttendance.StartAt), err }
+	if err != nil { return "", err }
 	
 	totalDuration 				:= int(now.Sub(parsedStartAt).Seconds())
 	workingHour 				:= fmt.Sprintf("%02d:%02d:%02d", totalDuration/3600, (totalDuration%3600)/60, totalDuration%60)
