@@ -6,12 +6,13 @@ import (
 	"net/url"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-
+	
 	// Migration
+	// "circle/pkg/database/seeder"
 	// "circle/domain"
 )
 
-func NewMysqlDtabase (dbUser string, dbPassword string, dbHost string, dbPort string, dbName string) *gorm.DB {
+func NewMysqlDatabase (dbUser string, dbPassword string, dbHost string, dbPort string, dbName string) *gorm.DB {
 	connection 	:= fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPassword, dbHost, dbPort, dbName)
 	val 		:= url.Values{}
 	val.Add("charset", "utf8mb4")
@@ -25,6 +26,7 @@ func NewMysqlDtabase (dbUser string, dbPassword string, dbHost string, dbPort st
 	// Migration
 	// dbConn.Migrator().DropTable(&domain.Attendance{})
 	// dbConn.AutoMigrate(&domain.Attendance{})
+	// seeder.Seed(dbConn)
 
 	return dbConn
 }

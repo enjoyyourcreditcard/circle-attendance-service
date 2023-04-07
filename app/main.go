@@ -8,9 +8,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/spf13/viper"
 
-	_attendanceHttpDelivery "circle/attendance/delivery/http"
-	_attendanceRepo "circle/attendance/repository/mysql"
-	_attendanceUsecase "circle/attendance/usecase"
+	_attendanceHttpDelivery "circle/infrastructure/attendance/delivery/http"
+	_attendanceRepo "circle/infrastructure/attendance/repository/mysql"
+	_attendanceUsecase "circle/infrastructure/attendance/usecase"
 )
 
 func init()  {
@@ -26,7 +26,7 @@ func main() {
 	dbPort 			:= viper.GetString(`database.port`)
 	dbName 			:= viper.GetString(`database.name`)
 	portService 	:= viper.GetString(`server.address`)
-	dbConn 			:= database.NewMysqlDtabase(dbUser, dbPassword, dbHost, dbPort, dbName)
+	dbConn 			:= database.NewMysqlDatabase(dbUser, dbPassword, dbHost, dbPort, dbName)
 	timeoutContext 	:= time.Duration(viper.GetInt("context.timeout")) * time.Second
 
 	app := fiber.New(fiber.Config{
