@@ -39,13 +39,14 @@ type EndAttendance struct {
 
 type AttendanceMonthly struct {
 	UserId 		string	`json:"user_id" gorm:"type:varchar(255)"`
-	TotalAbsen	int64 	`json:"total_absen" gorm:"type:varchar(255)"`
-	TotalOff	int64 	`json:"total_off" gorm:"type:varchar(255)"`
-	TotalWfh	int64 	`json:"total_wfh" gorm:"type:varchar(255)"`
-	TotalWfo	int64 	`json:"total_wfo" gorm:"type:varchar(255)"`
+	TotalAbsen	int64 	`json:"total_absen"`
+	TotalOff	int64 	`json:"total_off"`
+	TotalWfh	int64 	`json:"total_wfh"`
+	TotalWfo	int64 	`json:"total_wfo"`
 }
 
 type AttendanceUsecase interface {
+	GetUserLastAttendance	(context.Context, string)					(Attendance, error)
 	GetUserAttendanceMonthly(context.Context, string, string) 			(AttendanceMonthly, error)
 
 	PostStartAbsen			(context.Context, *Attendance, string) 		(string, error)
@@ -55,8 +56,8 @@ type AttendanceUsecase interface {
 
 type AttendanceRepository interface {
 	CheckAbsen				(context.Context, string, string) 		(int, error)
+	GetUserLastAttendance	(context.Context, string)				(Attendance, error)
 	GetUserAttendanceMonthly(context.Context, string, string)		(AttendanceMonthly, error)
-	GetLatestUserAbsen		(context.Context, Attendance, string) 	(Attendance, error)
 
 	CreateAbsen				(context.Context, *Attendance) 			(*Attendance, error)
 	UpdateAbsen				(context.Context, *EndAttendance, int) 	error

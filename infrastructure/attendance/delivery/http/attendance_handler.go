@@ -16,10 +16,19 @@ type AttendanceHandler struct {
 func NewAttendanceHandler(app *fiber.App, atu domain.AttendanceUsecase) {
 	handler := &AttendanceHandler{AttendanceUsecase: atu}
 
-	app.Get("/absen/user/bulanan/:user_id", handler.GetUserAttendanceMonthly)
+	app.Get("absen/user/:user_id", handler.GetUserLastAttendance)
+	app.Get("absen/user/bulanan/:user_id", handler.GetUserAttendanceMonthly)
 
 	app.Post("start/absen", handler.PostStartAbsen)
 	app.Post("end/absen", handler.PostStopAbsen)
+}
+
+func (ath *AttendanceHandler) GetUserLastAttendance(c *fiber.Ctx) error  {
+	userId 		:= c.Params("user_id")
+	data, err	:= ath.AttendanceUsecase.GetUserLastAttendance(c.Context(), userId)
+	if err != nil { return helper.ResponseIfError(err, c) }
+	
+	return c.JSON(domain.WebResponse{Status: http.StatusOK, Data: data, Message: "SUCCESS"})
 }
 
 func (ath *AttendanceHandler) GetUserAttendanceMonthly(c *fiber.Ctx) error {

@@ -19,13 +19,20 @@ func NewAttendanceUsecase(a domain.AttendanceRepository, timeout time.Duration) 
 	}
 }
 
-func (au attendanceUsecase) GetUserAttendanceMonthly(ctx context.Context, formatedCurrentMY string, userId string) (domain.AttendanceMonthly, error) {
-	res, err := au.attendanceRepo.GetUserAttendanceMonthly(ctx, formatedCurrentMY, userId)
+func (au attendanceUsecase) GetUserLastAttendance(ctx context.Context, userId string) (domain.Attendance, error)  {
+	res, err := au.attendanceRepo.GetUserLastAttendance(ctx, userId)
+	if err != nil {
+		res 			= domain.Attendance{}
+		res.UserId 		= userId
+		res.Worktype	= "Belum absen"
+		return res, nil
+	}
+
 	return res, err
 }
 
-func (au attendanceUsecase) CheckAbsen(ctx context.Context, userId string, formatedCurrentDate string) (int, error) {
-	res, err := au.attendanceRepo.CheckAbsen(ctx, userId, formatedCurrentDate)
+func (au attendanceUsecase) GetUserAttendanceMonthly(ctx context.Context, formatedCurrentMY string, userId string) (domain.AttendanceMonthly, error) {
+	res, err := au.attendanceRepo.GetUserAttendanceMonthly(ctx, formatedCurrentMY, userId)
 	return res, err
 }
 
@@ -47,9 +54,7 @@ func (au attendanceUsecase) PostStartAbsen(ctx context.Context, attendance *doma
 }
 
 func (au attendanceUsecase) PostStopAbsen(ctx context.Context, endAttendance *domain.EndAttendance, userId string) (string, error) {
-	var attendance domain.Attendance
-	
-	latestAttendance, err := au.attendanceRepo.GetLatestUserAbsen(ctx, attendance, userId)
+	latestAttendance, err := au.attendanceRepo.GetUserLastAttendance(ctx, userId)
 	if err != nil { return "", err }
 	
 	attendanceId 	:= latestAttendance.ID
