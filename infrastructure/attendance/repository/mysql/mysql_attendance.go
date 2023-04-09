@@ -4,7 +4,6 @@ import (
 	"circle/domain"
 	"circle/infrastructure/attendance/helper"
 	"context"
-
 	"gorm.io/gorm"
 )
 
@@ -58,6 +57,13 @@ func (ar mysqlAttendanceRepository) UpdateAbsen(ctx context.Context, endAttendan
 	var attendance domain.Attendance
 
 	result := ar.conn.Model(attendance).Where("id = ?", attendanceId).Updates(*endAttendance)
+	return result.Error
+}
+
+func (ar mysqlAttendanceRepository) PostAttendanceNotes(ctx context.Context, userId string, notes string) error {
+	var attendance domain.Attendance
+
+	result := ar.conn.Where("user_id = ?", userId).Last(&attendance).Update("notes", notes)
 	return result.Error
 }
 

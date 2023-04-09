@@ -18,9 +18,10 @@ func NewAttendanceHandler(app *fiber.App, atu domain.AttendanceUsecase) {
 
 	app.Get("absen/user/:user_id", handler.GetUserLastAttendance)
 	app.Get("absen/user/bulanan/:user_id", handler.GetUserAttendanceMonthly)
-
+	
 	app.Post("start/absen", handler.PostStartAbsen)
 	app.Post("end/absen", handler.PostStopAbsen)
+	app.Post("attendance/notes", handler.PostAttendanceNotes)
 }
 
 func (ath *AttendanceHandler) GetUserLastAttendance(c *fiber.Ctx) error  {
@@ -89,6 +90,16 @@ func (ath *AttendanceHandler) PostStopAbsen(c *fiber.Ctx) error {
 	endAttendance.StatusEnd 			= attendanceStatusEnd
 
 	data, err := ath.AttendanceUsecase.PostStopAbsen(c.Context(), &endAttendance, userId)
+	if err != nil { return helper.ResponseIfError(err, c) }
+
+	return c.JSON(domain.WebResponse{Status: http.StatusOK, Data: data, Message: "SUCCESS"})
+}
+
+func (ath *AttendanceHandler) PostAttendanceNotes(c *fiber.Ctx) error {
+	userId 		:= c.FormValue("user_id")
+	// regional 	:= c.FormValue("regional")
+	notes 		:= c.FormValue("notes")
+	data, err 	:= ath.AttendanceUsecase.PostAttendanceNotes(c.Context(), userId, notes)
 	if err != nil { return helper.ResponseIfError(err, c) }
 
 	return c.JSON(domain.WebResponse{Status: http.StatusOK, Data: data, Message: "SUCCESS"})

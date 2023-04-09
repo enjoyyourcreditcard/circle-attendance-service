@@ -76,6 +76,14 @@ func (au attendanceUsecase) PostStopAbsen(ctx context.Context, endAttendance *do
 	return res, err
 }
 
+func (au attendanceUsecase) PostAttendanceNotes(ctx context.Context, userId string, notes string) (string, error) {
+	err := au.attendanceRepo.PostAttendanceNotes(ctx, userId, notes)
+	if err != nil { return "", err }
+
+	res := "Notes berhasil ditambahkan"
+	return res, err
+}
+
 func (au attendanceUsecase) Hello() string {
 	response := au.attendanceRepo.Hello()
 	return response

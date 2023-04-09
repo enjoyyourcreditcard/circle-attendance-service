@@ -51,6 +51,7 @@ type AttendanceUsecase interface {
 
 	PostStartAbsen			(context.Context, *Attendance, string) 		(string, error)
 	PostStopAbsen			(context.Context, *EndAttendance, string) 	(string, error)
+	PostAttendanceNotes		(context.Context, string, string) 			(string, error)
 	Hello					() 											string
 }
 
@@ -61,5 +62,6 @@ type AttendanceRepository interface {
 
 	CreateAbsen				(context.Context, *Attendance) 			(*Attendance, error)
 	UpdateAbsen				(context.Context, *EndAttendance, int) 	error
+	PostAttendanceNotes		(context.Context, string, string) 		error
 	Hello					() 										string
 }
