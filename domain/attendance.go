@@ -11,6 +11,7 @@ type Attendance struct {
 	StartAt              string `json:"start_at" gorm:"type:varchar(255)"`
 	UpdatedAt            string `json:"updated_at" gorm:"type:varchar(255)"`
 	EndAt                string `json:"end_at" gorm:"type:varchar(255)"`
+	Timezone             string `json:"timezone" gorm:"type:varchar(255)"`
 	Position             string `json:"position" gorm:"type:varchar(1000)"`
 	Worktype             string `json:"worktype" gorm:"type:varchar(255)"`
 	LocationStartID      int    `json:"location_start_id"`
@@ -25,7 +26,6 @@ type Attendance struct {
 	StatusStart          string `json:"status_start" gorm:"type:varchar(255)"`
 	StatusEnd            string `json:"status_end" gorm:"type:varchar(255)"`
 	CreatedAt            string `json:"created_at" gorm:"type:varchar(255)"`
-	Timezone             string `json:"timezone" gorm:"type:varchar(255)"`
 }
 
 type EndAttendance struct {
@@ -49,10 +49,9 @@ type AttendanceUsecase interface {
 	GetUserLastAttendance	(context.Context, string)					(Attendance, error)
 	GetUserAttendanceMonthly(context.Context, string, string) 			(AttendanceMonthly, error)
 
-	PostStartAbsen			(context.Context, *Attendance, string) 		(string, error)
-	PostStopAbsen			(context.Context, *EndAttendance, string) 	(string, error)
+	PostClockIn				(context.Context, *Attendance, string) 		(string, error)
+	PostClockOut			(context.Context, *EndAttendance, string) 	(string, error)
 	PostAttendanceNotes		(context.Context, string, string) 			(string, error)
-	Hello					() 											string
 }
 
 type AttendanceRepository interface {
@@ -63,5 +62,4 @@ type AttendanceRepository interface {
 	CreateAbsen				(context.Context, *Attendance) 			(*Attendance, error)
 	UpdateAbsen				(context.Context, *EndAttendance, int) 	error
 	PostAttendanceNotes		(context.Context, string, string) 		error
-	Hello					() 										string
 }

@@ -66,7 +66,3 @@ func (ar mysqlAttendanceRepository) PostAttendanceNotes(ctx context.Context, use
 	result := ar.conn.Where("user_id = ?", userId).Last(&attendance).Update("notes", notes)
 	return result.Error
 }
-
-func (ar mysqlAttendanceRepository) Hello() string {
-	return "hello"
-}

@@ -36,7 +36,7 @@ func (au attendanceUsecase) GetUserAttendanceMonthly(ctx context.Context, format
 	return res, err
 }
 
-func (au attendanceUsecase) PostStartAbsen(ctx context.Context, attendance *domain.Attendance, formatedCurrentDate string) (string, error) {
+func (au attendanceUsecase) PostClockIn(ctx context.Context, attendance *domain.Attendance, formatedCurrentDate string) (string, error) {
 	var res string
 	var err error
 	var newAttendance *domain.Attendance
@@ -45,7 +45,7 @@ func (au attendanceUsecase) PostStartAbsen(ctx context.Context, attendance *doma
 	if err != nil { return "", err }
 
 	if checkAbsen > 0 {
-		res 				= "Anda sudah absen"
+		res 				= "Anda sudah clock in"
 	} else {
 		newAttendance, err 	= au.attendanceRepo.CreateAbsen(ctx, attendance)
 		res 				= newAttendance.StartAt
@@ -53,20 +53,28 @@ func (au attendanceUsecase) PostStartAbsen(ctx context.Context, attendance *doma
 	return res, err
 }
 
-func (au attendanceUsecase) PostStopAbsen(ctx context.Context, endAttendance *domain.EndAttendance, userId string) (string, error) {
+func (au attendanceUsecase) PostClockOut(ctx context.Context, endAttendance *domain.EndAttendance, userId string) (string, error) {
 	latestAttendance, err := au.attendanceRepo.GetUserLastAttendance(ctx, userId)
 	if err != nil { return "", err }
+
+	if latestAttendance.WorkingHour != "" { return "Anda sudah clock out", nil }
 	
 	attendanceId 	:= latestAttendance.ID
 	loc, err 		:= time.LoadLocation("Local")
 	if err != nil { return "", err }
 
-	now 				:= time.Now()
 	parsedStartAt, err 	:= time.ParseInLocation("02-01-2006 15:04:05", latestAttendance.StartAt, loc)
 	if err != nil { return "", err }
+
+	parsedEndAt, err 	:= time.ParseInLocation("02-01-2006 15:04:05", endAttendance.EndAt, loc)
+	if err != nil { return "", err }
 	
-	totalDuration 				:= int(now.Sub(parsedStartAt).Seconds())
-	workingHour 				:= fmt.Sprintf("%02d:%02d:%02d", totalDuration/3600, (totalDuration%3600)/60, totalDuration%60)
+	duration 	:= parsedEndAt.Sub(parsedStartAt)
+    hours 		:= int(duration.Hours())
+    minutes 	:= int(duration.Minutes()) % 60
+    seconds 	:= int(duration.Seconds()) % 60
+    workingHour := fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds)
+
 	endAttendance.WorkingHour 	= workingHour
 	err 						= au.attendanceRepo.UpdateAbsen(ctx, endAttendance, attendanceId)
 	if err != nil { return "", err }
@@ -82,9 +90,4 @@ func (au attendanceUsecase) PostAttendanceNotes(ctx context.Context, userId stri
 
 	res := "Notes berhasil ditambahkan"
 	return res, err
-}
-
-func (au attendanceUsecase) Hello() string {
-	response := au.attendanceRepo.Hello()
-	return response
 }

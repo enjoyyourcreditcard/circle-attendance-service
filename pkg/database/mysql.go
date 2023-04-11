@@ -8,8 +8,8 @@ import (
 	"gorm.io/gorm"
 	
 	// Migration
-	// "circle/pkg/database/seeder"
 	// "circle/domain"
+	// "circle/pkg/database/seeder"
 )
 
 func NewMysqlDatabase (dbUser string, dbPassword string, dbHost string, dbPort string, dbName string) *gorm.DB {
