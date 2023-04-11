@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/viper"
 
 	_attendanceHttpDelivery "circle/infrastructure/attendance/delivery/http"
-	_attendanceRepo "circle/infrastructure/attendance/repository/mysql"
 	_attendanceUsecase "circle/infrastructure/attendance/usecase"
+	_attendanceRepo "circle/infrastructure/attendance/repository/mysql"
 )
 
 func init()  {

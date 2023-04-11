@@ -2,6 +2,7 @@ package http
 
 import (
 	"circle/domain"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -22,6 +23,8 @@ func NewAttendanceHandler(app *fiber.App, atu domain.AttendanceUsecase) {
 	app.Post("start/absen", handler.PostClockIn)
 	app.Post("end/absen", handler.PostClockOut)
 	app.Post("attendance/notes", handler.PostAttendanceNotes)
+
+	app.Post("/assignment", handler.PostAssignment)
 }
 
 func (ath *AttendanceHandler) GetUserLastAttendance(c *fiber.Ctx) error  {
@@ -126,4 +129,13 @@ func (ath *AttendanceHandler) PostAttendanceNotes(c *fiber.Ctx) error {
 	if err != nil { return c.Status(http.StatusInternalServerError).JSON(domain.WebResponse{Status: 500, Message: err.Error(), Data: nil}) }
 
 	return c.JSON(domain.WebResponse{Status: http.StatusOK, Data: data, Message: "SUCCESS"})
+}
+
+func (ath *AttendanceHandler) PostAssignment(c *fiber.Ctx) error {
+	var assignment domain.Assignment
+	err := c.BodyParser(&assignment)
+	if err != nil { return c.Status(http.StatusInternalServerError).JSON(domain.WebResponse{Status: 500, Message: err.Error(), Data: nil}) }
+
+	fmt.Println(assignment)
+	return nil
 }
