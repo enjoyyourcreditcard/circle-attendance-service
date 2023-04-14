@@ -31,8 +31,8 @@ func (au attendanceUsecase) GetUserLastAttendance(ctx context.Context, userId st
 	return res, err
 }
 
-func (au attendanceUsecase) GetUserAttendanceMonthly(ctx context.Context, formatedCurrentMY string, userId string) (domain.AttendanceMonthly, error) {
-	res, err := au.attendanceRepo.GetUserAttendanceMonthly(ctx, formatedCurrentMY, userId)
+func (au attendanceUsecase) GetUserAttendanceData(ctx context.Context, userId string, startAt string, endAt string) ([]domain.Attendance, error) {
+	res, err := au.attendanceRepo.GetUserAttendanceData(ctx, userId, startAt, endAt)
 	return res, err
 }
 

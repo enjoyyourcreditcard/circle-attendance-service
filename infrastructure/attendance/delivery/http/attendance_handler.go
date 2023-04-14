@@ -2,7 +2,6 @@ package http
 
 import (
 	"circle/domain"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -18,13 +17,12 @@ func NewAttendanceHandler(app *fiber.App, atu domain.AttendanceUsecase) {
 	handler := &AttendanceHandler{AttendanceUsecase: atu}
 
 	app.Get("absen/user/:user_id", handler.GetUserLastAttendance)
-	app.Get("absen/user/bulanan/:user_id", handler.GetUserAttendanceMonthly)
+	// app.Get("absen/user/dashboard/:user_id/:start_at/:end_at", handler.GetUserDashboardAttendance)
+	app.Get("absen/user/:user_id/:start_at/:end_at", handler.GetUserAttendanceData)
 	
 	app.Post("start/absen", handler.PostClockIn)
 	app.Post("end/absen", handler.PostClockOut)
 	app.Post("attendance/notes", handler.PostAttendanceNotes)
-
-	app.Post("/assignment", handler.PostAssignment)
 }
 
 func (ath *AttendanceHandler) GetUserLastAttendance(c *fiber.Ctx) error  {
@@ -35,11 +33,13 @@ func (ath *AttendanceHandler) GetUserLastAttendance(c *fiber.Ctx) error  {
 	return c.JSON(domain.WebResponse{Status: http.StatusOK, Data: data, Message: "SUCCESS"})
 }
 
-func (ath *AttendanceHandler) GetUserAttendanceMonthly(c *fiber.Ctx) error {
-	userId 				:= c.Params("user_id")
-	currentTime			:= time.Now()
-	formatedCurrentMY 	:= currentTime.Format("01-2006")
-	data, err 			:= ath.AttendanceUsecase.GetUserAttendanceMonthly(c.Context(), formatedCurrentMY, userId)
+func (ath *AttendanceHandler) GetUserAttendanceData(c *fiber.Ctx) error {
+	userId 		:= c.Params("user_id")
+	startAt 	:= c.Params("start_at")
+	endAt 		:= c.Params("end_at")
+	startAtTime := startAt + " 00:00:01"
+	endAtTime 	:= endAt + " 23:59:59"
+	data, err 	:= ath.AttendanceUsecase.GetUserAttendanceData(c.Context(), userId, startAtTime, endAtTime)
 	if err != nil { return c.Status(http.StatusInternalServerError).JSON(domain.WebResponse{Status: 500, Message: err.Error(), Data: nil}) }
 
 	return c.JSON(domain.WebResponse{Status: http.StatusOK, Data: data, Message: "SUCCESS"})
@@ -129,13 +129,4 @@ func (ath *AttendanceHandler) PostAttendanceNotes(c *fiber.Ctx) error {
 	if err != nil { return c.Status(http.StatusInternalServerError).JSON(domain.WebResponse{Status: 500, Message: err.Error(), Data: nil}) }
 
 	return c.JSON(domain.WebResponse{Status: http.StatusOK, Data: data, Message: "SUCCESS"})
-}
-
-func (ath *AttendanceHandler) PostAssignment(c *fiber.Ctx) error {
-	var assignment domain.Assignment
-	err := c.BodyParser(&assignment)
-	if err != nil { return c.Status(http.StatusInternalServerError).JSON(domain.WebResponse{Status: 500, Message: err.Error(), Data: nil}) }
-
-	fmt.Println(assignment)
-	return nil
 }

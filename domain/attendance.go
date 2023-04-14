@@ -47,7 +47,7 @@ type AttendanceMonthly struct {
 
 type AttendanceUsecase interface {
 	GetUserLastAttendance	(context.Context, string)					(Attendance, error)
-	GetUserAttendanceMonthly(context.Context, string, string) 			(AttendanceMonthly, error)
+	GetUserAttendanceData	(context.Context, string, string, string)	([]Attendance, error)
 
 	PostClockIn				(context.Context, *Attendance, string) 		(string, error)
 	PostClockOut			(context.Context, *EndAttendance, string) 	(string, error)
@@ -55,9 +55,9 @@ type AttendanceUsecase interface {
 }
 
 type AttendanceRepository interface {
-	CheckAbsen				(context.Context, string, string) 		(int, error)
-	GetUserLastAttendance	(context.Context, string)				(Attendance, error)
-	GetUserAttendanceMonthly(context.Context, string, string)		(AttendanceMonthly, error)
+	CheckAbsen				(context.Context, string, string) 			(int, error)
+	GetUserLastAttendance	(context.Context, string)					(Attendance, error)
+	GetUserAttendanceData	(context.Context, string, string, string)	([]Attendance, error)
 
 	CreateAbsen				(context.Context, *Attendance) 			(*Attendance, error)
 	UpdateAbsen				(context.Context, *EndAttendance, int) 	error

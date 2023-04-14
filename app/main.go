@@ -11,6 +11,10 @@ import (
 	_attendanceHttpDelivery "circle/infrastructure/attendance/delivery/http"
 	_attendanceUsecase "circle/infrastructure/attendance/usecase"
 	_attendanceRepo "circle/infrastructure/attendance/repository/mysql"
+
+	_assignmentHttpDelivery "circle/infrastructure/assignment/delivery/http"
+	_assignmentUsecase "circle/infrastructure/assignment/usecase"
+	_assignmentRepo "circle/infrastructure/assignment/repository/mysql"
 )
 
 func init()  {
@@ -35,16 +39,20 @@ func main() {
 			StrictRouting: 	true,
 			ServerHeader:  	"Fiber",
 			AppName: 		"Circle",
+			BodyLimit: 		2097152,
 	})
 
 	// Init Repository
 	atr := _attendanceRepo.NewMysqlAttendanceRepository(dbConn)
+	asr := _assignmentRepo.NewMysqlAssignmentRepository(dbConn)
 
 	// Init Usecase
 	atu := _attendanceUsecase.NewAttendanceUsecase(atr, timeoutContext)
+	asu := _assignmentUsecase.NewAssignmentUsecase(asr, timeoutContext)
 
 	// Init Delivery
 	_attendanceHttpDelivery.NewAttendanceHandler(app, atu)
+	_assignmentHttpDelivery.NewAssignmentHandler(app, asu)
 	
 	err := app.Listen(portService)
 	helper.PanicIfError(err)

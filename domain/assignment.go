@@ -13,12 +13,17 @@ type Assignment struct {
 	EndAt                string `json:"end_at" gorm:"type:varchar(255)"`
 	ParentID             int    `json:"parent_id"`
 	UserID               string `json:"user_id"`
+	Status               string `json:"status" gorm:"type:varchar(255)"`
 }
 
 type AssignmentUsecase interface {
+	GetAssignments(context.Context, string, string, string, string, string) ([]Assignment, error)
+	
 	PostAssignment(context.Context, *Assignment) error
 }
 
 type AssignmentRepository interface {
+	GetAssignments(context.Context, string, string, string, string, string) ([]Assignment, error)
+
 	CreateAssignment(context.Context, *Assignment) error
 }

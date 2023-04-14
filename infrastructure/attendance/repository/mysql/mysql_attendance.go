@@ -2,8 +2,8 @@ package mysql
 
 import (
 	"circle/domain"
-	"circle/infrastructure/attendance/helper"
 	"context"
+
 	"gorm.io/gorm"
 )
 
@@ -22,21 +22,10 @@ func (ar mysqlAttendanceRepository) GetUserLastAttendance(ctx context.Context, u
 	return attendance, result.Error
 }
 
-func (ar mysqlAttendanceRepository) GetUserAttendanceMonthly(ctx context.Context, formatedCurrentMY string, userId string) (domain.AttendanceMonthly, error) {
-	var attendances 		[]domain.Attendance
-	var attendanceMonthly 	domain.AttendanceMonthly
-	var totalAbsen 			int64
-	var totalWfo 			int64
-	var totalWfh 			int64
-	var totalOff 			int64
-
-	result := ar.conn.Where("user_id = ?", userId).Where("start_at LIKE ?", "%"+formatedCurrentMY+"%").Find(&attendances).Count(&totalAbsen)
-	ar.conn.Where("user_id = ?", userId).Where("start_at LIKE ?", "%"+formatedCurrentMY+"%").Where("worktype = ?", "wfo").Find(&attendances).Count(&totalWfo)
-	ar.conn.Where("user_id = ?", userId).Where("start_at LIKE ?", "%"+formatedCurrentMY+"%").Where("worktype = ?", "wfh").Find(&attendances).Count(&totalWfh)
-	ar.conn.Where("user_id = ?", userId).Where("start_at LIKE ?", "%"+formatedCurrentMY+"%").Where("worktype = ?", "off").Find(&attendances).Count(&totalOff)
-
-	attendanceMonthly = helper.GetUserAttendanceMonthly(attendanceMonthly, userId, totalAbsen, totalWfo, totalWfh, totalOff)
-	return attendanceMonthly, result.Error
+func (ar mysqlAttendanceRepository) GetUserAttendanceData(ctx context.Context, userId string, startAt string, endAt string) ([]domain.Attendance, error) {
+	var attendances []domain.Attendance
+	result := ar.conn.Where("user_id = ?", userId).Where("start_at BETWEEN ? AND ?", startAt, endAt).Where("end_at BETWEEN ? AND ?", startAt, endAt).Find(&attendances)
+	return attendances, result.Error
 }
 
 func (ar mysqlAttendanceRepository) CheckAbsen(ctx context.Context, userId string, formatedCurrentDate string) (int, error) {
@@ -65,4 +54,8 @@ func (ar mysqlAttendanceRepository) PostAttendanceNotes(ctx context.Context, use
 
 	result := ar.conn.Where("user_id = ?", userId).Last(&attendance).Update("notes", notes)
 	return result.Error
+}
+
+func (ar mysqlAttendanceRepository) CreateAssignment(ctx context.Context, assignment *domain.Assignment) error {
+	return nil
 }
