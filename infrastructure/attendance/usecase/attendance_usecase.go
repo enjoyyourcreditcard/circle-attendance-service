@@ -31,6 +31,24 @@ func (au attendanceUsecase) GetUserLastAttendance(ctx context.Context, userId st
 	return res, err
 }
 
+func (au attendanceUsecase) GetUserDashboardAttendance(ctx context.Context, userId string, startAt string, endAt string) (domain.DashboardAttendance, error) {
+	layout 				:= "02-01-2006 15:04:05"
+	parsedStartAt, err 	:= time.Parse(layout, startAt)
+	if err != nil { return domain.DashboardAttendance{}, err }
+	
+	parsedEndAt, err 	:= time.Parse(layout, endAt)
+	if err != nil { return domain.DashboardAttendance{}, err }
+
+	res, err 		:= au.attendanceRepo.GetUserDashboardAttendance(ctx, userId, startAt, endAt)
+	duration 		:= parsedEndAt.Sub(parsedStartAt)
+	period 			:= int(duration.Hours() / 24) + 1
+	nonWorkingDay 	:= int64(period) - res.WorkingDay
+
+	res.NonWorkingDay = nonWorkingDay
+	res.Alpa 		  = nonWorkingDay
+	return res, err
+}
+
 func (au attendanceUsecase) GetUserAttendanceData(ctx context.Context, userId string, startAt string, endAt string) ([]domain.Attendance, error) {
 	res, err := au.attendanceRepo.GetUserAttendanceData(ctx, userId, startAt, endAt)
 	return res, err

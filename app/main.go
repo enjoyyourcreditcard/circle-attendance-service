@@ -17,7 +17,7 @@ import (
 	_assignmentRepo "circle/infrastructure/assignment/repository/mysql"
 )
 
-func init()  {
+func init() {
 		   viper.SetConfigFile(`config.json`)
 	err := viper.ReadInConfig()
 	helper.PanicIfError(err)

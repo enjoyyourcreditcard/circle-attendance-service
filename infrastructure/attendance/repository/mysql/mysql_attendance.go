@@ -22,8 +22,31 @@ func (ar mysqlAttendanceRepository) GetUserLastAttendance(ctx context.Context, u
 	return attendance, result.Error
 }
 
+func (ar mysqlAttendanceRepository) GetUserDashboardAttendance(ctx context.Context, userId string, startAt string, endAt string) (domain.DashboardAttendance, error) {
+	var attendance 			domain.Attendance
+	var dashboardAttendance domain.DashboardAttendance
+	
+	result := ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Count(&dashboardAttendance.WorkingDay)
+	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Count(&dashboardAttendance.TotalClockin)
+	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Not("end_at LIKE ?", "%00:00:00").Count(&dashboardAttendance.TotalClockout)
+	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Where("worktype = ?", "wfh").Count(&dashboardAttendance.TotalWfh)
+	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Where("worktype = ?", "wfo").Count(&dashboardAttendance.TotalWfo)
+	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Where("TIME(STR_TO_DATE(start_at, '%d-%m-%Y %H:%i:%s')) > ?", "09:15:00").Count(&dashboardAttendance.LateIn)
+	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Where("TIME(STR_TO_DATE(start_at, '%d-%m-%Y %H:%i:%s')) < ?", "09:15:00").Count(&dashboardAttendance.EarlyIn)
+	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Where("TIME(STR_TO_DATE(end_at, '%d-%m-%Y %H:%i:%s')) < ?", "18:00:00").Not("TIME(STR_TO_DATE(end_at, '%d-%m-%Y %H:%i:%s')) = ?", "00:00:00").Count(&dashboardAttendance.EarlyOut)
+	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Where("status_start = ?", "inside_area").Count(&dashboardAttendance.InsideArea)
+	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Not("status_start != ?", "inside_area").Count(&dashboardAttendance.OutsideArea)
+	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Where("status_start = ?", "inside_other_area").Count(&dashboardAttendance.InsideOtherArea)
+	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Where("type = ?", "shifting").Count(&dashboardAttendance.Shifting)
+	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Not("type = ?", "shifting").Count(&dashboardAttendance.OfficeHour)
+	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Not("working_hour = ?", "").Where("working_hour > ?", "09:00:00").Count(&dashboardAttendance.UneligibleWorkingHour)
+	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Not("notes = ?", "").Count(&dashboardAttendance.Penugasan)
+	return dashboardAttendance, result.Error
+}
+
 func (ar mysqlAttendanceRepository) GetUserAttendanceData(ctx context.Context, userId string, startAt string, endAt string) ([]domain.Attendance, error) {
 	var attendances []domain.Attendance
+	
 	result := ar.conn.Where("user_id = ?", userId).Where("start_at BETWEEN ? AND ?", startAt, endAt).Where("end_at BETWEEN ? AND ?", startAt, endAt).Find(&attendances)
 	return attendances, result.Error
 }

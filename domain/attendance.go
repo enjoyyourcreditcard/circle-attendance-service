@@ -37,17 +37,34 @@ type EndAttendance struct {
 	WorkingHour        	string `json:"working_hour" gorm:"type:varchar(255)"`
 }
 
-type AttendanceMonthly struct {
-	UserId 		string	`json:"user_id" gorm:"type:varchar(255)"`
-	TotalAbsen	int64 	`json:"total_absen"`
-	TotalOff	int64 	`json:"total_off"`
-	TotalWfh	int64 	`json:"total_wfh"`
-	TotalWfo	int64 	`json:"total_wfo"`
+type DashboardAttendance struct {
+	WorkingDay 				int64 `json:"working_day"`
+	NonWorkingDay 			int64 `json:"non_working_day"`
+	Holiday					int64 `json:"holiday"`
+	TotalClockin 			int64 `json:"total_clockin"`
+	TotalClockout 			int64 `json:"total_clockout"`
+	TotalWfh				int64 `json:"total_wfh"`
+	TotalWfo				int64 `json:"total_wfo"`
+	LateIn					int64 `json:"late_in"`
+	EarlyIn				int64 `json:"early_in"`
+	EarlyOut				int64 `json:"early_out"`
+	InsideArea				int64 `json:"inside_area"`
+	OutsideArea				int64 `json:"outside_area"`
+	InsideOtherArea 		int64 `json:"inside_other_area"`
+	Shifting				int64 `json:"shifting"`
+	OfficeHour				int64 `json:"office_hour"`
+	Alpa					int64 `json:"apla"`
+	Sick					int64 `json:"sick"`
+	Izin					int64 `json:"izin"`
+	Leave					int64 `json:"leave"`
+	UneligibleWorkingHour	int64 `json:"uneligible_working_hour"`
+	Penugasan				int64 `json:"penugasan"`
 }
 
 type AttendanceUsecase interface {
-	GetUserLastAttendance	(context.Context, string)					(Attendance, error)
-	GetUserAttendanceData	(context.Context, string, string, string)	([]Attendance, error)
+	GetUserLastAttendance		(context.Context, string)					(Attendance, error)
+	GetUserDashboardAttendance	(context.Context, string, string, string)	(DashboardAttendance, error)
+	GetUserAttendanceData		(context.Context, string, string, string)	([]Attendance, error)
 
 	PostClockIn				(context.Context, *Attendance, string) 		(string, error)
 	PostClockOut			(context.Context, *EndAttendance, string) 	(string, error)
@@ -55,9 +72,10 @@ type AttendanceUsecase interface {
 }
 
 type AttendanceRepository interface {
-	CheckAbsen				(context.Context, string, string) 			(int, error)
-	GetUserLastAttendance	(context.Context, string)					(Attendance, error)
-	GetUserAttendanceData	(context.Context, string, string, string)	([]Attendance, error)
+	CheckAbsen					(context.Context, string, string) 			(int, error)
+	GetUserLastAttendance		(context.Context, string)					(Attendance, error)
+	GetUserDashboardAttendance	(context.Context, string, string, string)	(DashboardAttendance, error)
+	GetUserAttendanceData		(context.Context, string, string, string)	([]Attendance, error)
 
 	CreateAbsen				(context.Context, *Attendance) 			(*Attendance, error)
 	UpdateAbsen				(context.Context, *EndAttendance, int) 	error
