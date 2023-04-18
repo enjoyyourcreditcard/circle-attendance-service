@@ -46,7 +46,7 @@ type DashboardAttendance struct {
 	TotalWfh				int64 `json:"total_wfh"`
 	TotalWfo				int64 `json:"total_wfo"`
 	LateIn					int64 `json:"late_in"`
-	EarlyIn				int64 `json:"early_in"`
+	EarlyIn					int64 `json:"early_in"`
 	EarlyOut				int64 `json:"early_out"`
 	InsideArea				int64 `json:"inside_area"`
 	OutsideArea				int64 `json:"outside_area"`
@@ -59,12 +59,58 @@ type DashboardAttendance struct {
 	Leave					int64 `json:"leave"`
 	UneligibleWorkingHour	int64 `json:"uneligible_working_hour"`
 	Penugasan				int64 `json:"penugasan"`
+	UserData   				User  `json:"user_data"`
+}
+
+type ApiResponse struct {
+	Status 	int 		`json:"status"`
+	Message string 		`json:"message"`
+	Data    struct { Child []User `json:"child"` } `json:"data"`
+}
+
+type User struct {
+	ID             	int    `json:"id" gorm:"primary_key;auto_increment;not_null"`
+	SalesCode      	string `json:"sales_code"`
+	HRID           	int    `json:"hr_id"`
+	ParentID       	string  `json:"parent_id"`
+	ProfileImage   	string `json:"profile_image"`
+	UnitBisnis     	string `json:"unit_bisnis" gorm:"not_null"`
+	Name           	string `json:"name" gorm:"not_null"`
+	Email          	string `json:"email" gorm:"not_null"`
+	Phone          	string `json:"phone" gorm:"not_null"`
+	PhoneSecondary 	string `json:"phone_secondary"`
+	StatusKaryawan 	string `json:"status_karyawan" gorm:"not_null"`
+	OSName          string `json:"os_name"`
+	JobRoles        string `json:"job_roles"`
+	WorkType        string `json:"work_type"`
+	LastLogin       string `json:"last_login" `
+	TotalLeave      int    `json:"total_leave"`
+	NIK             string `json:"nik"`
+	PIN             string `json:"pin"`
+	Password        string `json:"password"`
+	Regional        string `json:"regional" gorm:"not_null"`
+	Location        string `json:"location" gorm:"not_null"`
+	FaceRecognition string `json:"face_recognition"`
+	Status          string `json:"status"`
+	DeviceName      string `json:"device_name" `
+	Privilege       string `json:"privilege"`
+	AttendanceType  string `json:"attendance_type"`
+	StatusMonitor   bool   `json:"status_monitor"`
+	DeviceID        string `json:"device_id" `
+	AppIssue        string `json:"app_issue"`
+	AdditionalPriv  string `json:"additional_privilege"`
+	IsActivate      string `json:"is_activate"`
+	CreatedAt       string `json:"created_at"`
+	UpdatedAt       string `json:"updated_at"`
+	Token           string `json:"token" gorm:"-"`
 }
 
 type AttendanceUsecase interface {
-	GetUserLastAttendance		(context.Context, string)					(Attendance, error)
-	GetUserDashboardAttendance	(context.Context, string, string, string)	(DashboardAttendance, error)
-	GetUserAttendanceData		(context.Context, string, string, string)	([]Attendance, error)
+	GetUserLastAttendance				(context.Context, string)					(Attendance, error)
+	GetUserDashboardAttendance			(context.Context, string, string, string)	(DashboardAttendance, error)
+	GetUserAttendanceData				(context.Context, string, string, string)	([]Attendance, error)
+	GetChildDashboardAttendance			(context.Context, string, string, []User)	(DashboardAttendance, error)
+	GetChildDashboardAttendanceDetail	(context.Context, string, string, []User)	([]DashboardAttendance, error)
 
 	PostClockIn				(context.Context, *Attendance, string) 		(string, error)
 	PostClockOut			(context.Context, *EndAttendance, string) 	(string, error)
@@ -72,10 +118,10 @@ type AttendanceUsecase interface {
 }
 
 type AttendanceRepository interface {
-	CheckAbsen					(context.Context, string, string) 			(int, error)
-	GetUserLastAttendance		(context.Context, string)					(Attendance, error)
-	GetUserDashboardAttendance	(context.Context, string, string, string)	(DashboardAttendance, error)
-	GetUserAttendanceData		(context.Context, string, string, string)	([]Attendance, error)
+	CheckAbsen					(context.Context, string, string) 				(int, error)
+	GetUserLastAttendance		(context.Context, string)						(Attendance, error)
+	GetUserDashboardAttendance	(context.Context, string, string, string)		(DashboardAttendance, error)
+	GetUserAttendanceData		(context.Context, string, string, string)		([]Attendance, error)
 
 	CreateAbsen				(context.Context, *Attendance) 			(*Attendance, error)
 	UpdateAbsen				(context.Context, *EndAttendance, int) 	error

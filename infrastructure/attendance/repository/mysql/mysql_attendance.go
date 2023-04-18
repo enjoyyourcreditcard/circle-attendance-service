@@ -3,6 +3,7 @@ package mysql
 import (
 	"circle/domain"
 	"context"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -24,23 +25,53 @@ func (ar mysqlAttendanceRepository) GetUserLastAttendance(ctx context.Context, u
 
 func (ar mysqlAttendanceRepository) GetUserDashboardAttendance(ctx context.Context, userId string, startAt string, endAt string) (domain.DashboardAttendance, error) {
 	var attendance 			domain.Attendance
+	var attendances 		[]domain.Attendance
 	var dashboardAttendance domain.DashboardAttendance
+
+	layout 				:= "02-01-2006 15:04:05"
+	parsedStartAt, err 	:= time.Parse(layout, startAt)
+	if err != nil { return dashboardAttendance, err }
 	
-	result := ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Count(&dashboardAttendance.WorkingDay)
-	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Count(&dashboardAttendance.TotalClockin)
-	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Not("end_at LIKE ?", "%00:00:00").Count(&dashboardAttendance.TotalClockout)
-	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Where("worktype = ?", "wfh").Count(&dashboardAttendance.TotalWfh)
-	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Where("worktype = ?", "wfo").Count(&dashboardAttendance.TotalWfo)
-	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Where("TIME(STR_TO_DATE(start_at, '%d-%m-%Y %H:%i:%s')) > ?", "09:15:00").Count(&dashboardAttendance.LateIn)
-	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Where("TIME(STR_TO_DATE(start_at, '%d-%m-%Y %H:%i:%s')) < ?", "09:15:00").Count(&dashboardAttendance.EarlyIn)
-	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Where("TIME(STR_TO_DATE(end_at, '%d-%m-%Y %H:%i:%s')) < ?", "18:00:00").Not("TIME(STR_TO_DATE(end_at, '%d-%m-%Y %H:%i:%s')) = ?", "00:00:00").Count(&dashboardAttendance.EarlyOut)
-	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Where("status_start = ?", "inside_area").Count(&dashboardAttendance.InsideArea)
-	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Not("status_start != ?", "inside_area").Count(&dashboardAttendance.OutsideArea)
-	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Where("status_start = ?", "inside_other_area").Count(&dashboardAttendance.InsideOtherArea)
-	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Where("type = ?", "shifting").Count(&dashboardAttendance.Shifting)
-	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Not("type = ?", "shifting").Count(&dashboardAttendance.OfficeHour)
-	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Not("working_hour = ?", "").Where("working_hour > ?", "09:00:00").Count(&dashboardAttendance.UneligibleWorkingHour)
-	result = ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Not("notes = ?", "").Count(&dashboardAttendance.Penugasan)
+	parsedEndAt, err := time.Parse(layout, endAt)
+	if err != nil { return dashboardAttendance, err }
+
+	duration 		:= parsedEndAt.Sub(parsedStartAt)
+	period 			:= int(duration.Hours() / 24) + 1
+	weekendCount 	:= 0
+
+	for d := parsedStartAt; d.Before(parsedEndAt); d = d.AddDate(0, 0, 1) {
+		if d.Weekday() == time.Saturday || d.Weekday() == time.Sunday { weekendCount++ }
+	}
+
+	totalRecords 	:= period - weekendCount
+	query 			:= ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Not("DAYOFWEEK(STR_TO_DATE(start_at, '%d-%m-%Y')) IN (1,7)").Session(&gorm.Session{})
+	result 			:= query.Find(&attendances)
+	if result.Error != nil { return dashboardAttendance, result.Error }
+	
+	result = query.Count(&dashboardAttendance.WorkingDay)
+	result = query.Count(&dashboardAttendance.TotalClockin)
+	result = query.Not("end_at LIKE ?", "%00:00:00").Count(&dashboardAttendance.TotalClockout)
+	result = query.Where("worktype = ?", "wfh").Count(&dashboardAttendance.TotalWfh)
+	result = query.Where("worktype = ?", "wfo").Count(&dashboardAttendance.TotalWfo)
+	result = query.Where("TIME(STR_TO_DATE(start_at, '%d-%m-%Y %H:%i:%s')) > ?", "09:15:00").Count(&dashboardAttendance.LateIn)
+	result = query.Where("TIME(STR_TO_DATE(start_at, '%d-%m-%Y %H:%i:%s')) < ?", "09:15:00").Count(&dashboardAttendance.EarlyIn)
+	result = query.Where("TIME(STR_TO_DATE(end_at, '%d-%m-%Y %H:%i:%s')) < ?", "18:00:00").Not("TIME(STR_TO_DATE(end_at, '%d-%m-%Y %H:%i:%s')) = ?", "00:00:00").Count(&dashboardAttendance.EarlyOut)
+	result = query.Where("status_start = ?", "inside_area").Count(&dashboardAttendance.InsideArea)
+	result = query.Not("status_start != ?", "inside_area").Count(&dashboardAttendance.OutsideArea)
+	result = query.Where("status_start = ?", "inside_other_area").Count(&dashboardAttendance.InsideOtherArea)
+	result = query.Where("type = ?", "shifting").Count(&dashboardAttendance.Shifting)
+	result = query.Not("type = ?", "shifting").Count(&dashboardAttendance.OfficeHour)
+	result = query.Not("working_hour = ?", "").Where("working_hour < ?", "09:00:00").Count(&dashboardAttendance.UneligibleWorkingHour)
+	result = query.Not("notes = ?", "").Count(&dashboardAttendance.Penugasan)
+	result = query.Where("absen_status = ?", "sick").Count(&dashboardAttendance.Sick)
+	result = query.Where("absen_status = ?", "izin").Count(&dashboardAttendance.Izin)
+
+	numRecords 			:= len(attendances)
+	remainingRecords 	:= totalRecords - numRecords
+
+	dashboardAttendance.NonWorkingDay = int64(remainingRecords)
+	dashboardAttendance.Alpa 		  = int64(remainingRecords)
+
 	return dashboardAttendance, result.Error
 }
 
@@ -77,8 +108,4 @@ func (ar mysqlAttendanceRepository) PostAttendanceNotes(ctx context.Context, use
 
 	result := ar.conn.Where("user_id = ?", userId).Last(&attendance).Update("notes", notes)
 	return result.Error
-}
-
-func (ar mysqlAttendanceRepository) CreateAssignment(ctx context.Context, assignment *domain.Assignment) error {
-	return nil
 }

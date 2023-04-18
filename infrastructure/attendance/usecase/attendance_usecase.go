@@ -4,6 +4,7 @@ import (
 	"circle/domain"
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -32,26 +33,69 @@ func (au attendanceUsecase) GetUserLastAttendance(ctx context.Context, userId st
 }
 
 func (au attendanceUsecase) GetUserDashboardAttendance(ctx context.Context, userId string, startAt string, endAt string) (domain.DashboardAttendance, error) {
-	layout 				:= "02-01-2006 15:04:05"
-	parsedStartAt, err 	:= time.Parse(layout, startAt)
-	if err != nil { return domain.DashboardAttendance{}, err }
-	
-	parsedEndAt, err 	:= time.Parse(layout, endAt)
-	if err != nil { return domain.DashboardAttendance{}, err }
-
 	res, err 		:= au.attendanceRepo.GetUserDashboardAttendance(ctx, userId, startAt, endAt)
-	duration 		:= parsedEndAt.Sub(parsedStartAt)
-	period 			:= int(duration.Hours() / 24) + 1
-	nonWorkingDay 	:= int64(period) - res.WorkingDay
-
-	res.NonWorkingDay = nonWorkingDay
-	res.Alpa 		  = nonWorkingDay
 	return res, err
 }
 
 func (au attendanceUsecase) GetUserAttendanceData(ctx context.Context, userId string, startAt string, endAt string) ([]domain.Attendance, error) {
 	res, err := au.attendanceRepo.GetUserAttendanceData(ctx, userId, startAt, endAt)
 	return res, err
+}
+
+func (au attendanceUsecase) GetChildDashboardAttendance(ctx context.Context, startAt string, endAt string, children []domain.User) (domain.DashboardAttendance, error) {
+	var res 		domain.DashboardAttendance
+	var dashboard 	domain.DashboardAttendance
+	var dashboards 	[]domain.DashboardAttendance
+	var err 		error
+	
+	for _, child := range children {
+		userId 			:= strconv.Itoa(child.ID)
+		res, err 		= au.attendanceRepo.GetUserDashboardAttendance(ctx, userId, startAt, endAt)
+		if err != nil { return domain.DashboardAttendance{}, err }
+
+		dashboards 		= append(dashboards, res)
+	}
+
+	for _, data := range dashboards {
+        dashboard.WorkingDay 			+= data.WorkingDay
+        dashboard.NonWorkingDay 		+= data.NonWorkingDay
+        dashboard.Holiday 				+= data.Holiday
+        dashboard.TotalClockin 			+= data.TotalClockin
+        dashboard.TotalClockout 		+= data.TotalClockout
+        dashboard.TotalWfh 				+= data.TotalWfh
+        dashboard.TotalWfo 				+= data.TotalWfo
+        dashboard.LateIn 				+= data.LateIn
+        dashboard.EarlyIn 				+= data.EarlyIn
+        dashboard.EarlyOut 				+= data.EarlyOut
+        dashboard.InsideArea 			+= data.InsideArea
+        dashboard.OutsideArea 			+= data.OutsideArea
+        dashboard.InsideOtherArea 		+= data.InsideOtherArea
+        dashboard.Shifting 				+= data.Shifting
+        dashboard.OfficeHour 			+= data.OfficeHour
+        dashboard.Alpa 					+= data.Alpa
+        dashboard.Sick 					+= data.Sick
+        dashboard.Izin 					+= data.Izin
+        dashboard.Leave 				+= data.Leave
+        dashboard.UneligibleWorkingHour += data.UneligibleWorkingHour
+        dashboard.Penugasan 			+= data.Penugasan
+    }
+
+	return dashboard, err
+}
+
+func (au attendanceUsecase) GetChildDashboardAttendanceDetail(ctx context.Context, startAt string, endAt string, children []domain.User) ([]domain.DashboardAttendance, error) {
+	var res 		domain.DashboardAttendance
+	var dashboards 	[]domain.DashboardAttendance
+	var err 		error
+	
+	for _, child := range children {
+		userId 			:= strconv.Itoa(child.ID)
+		res, err 		= au.attendanceRepo.GetUserDashboardAttendance(ctx, userId, startAt, endAt)
+		res.UserData 	= child
+		dashboards		= append(dashboards, res)
+	}
+	
+	return dashboards, err
 }
 
 func (au attendanceUsecase) PostClockIn(ctx context.Context, attendance *domain.Attendance, formatedCurrentDate string) (string, error) {

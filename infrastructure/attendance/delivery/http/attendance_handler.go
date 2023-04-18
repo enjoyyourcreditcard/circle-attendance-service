@@ -2,6 +2,7 @@ package http
 
 import (
 	"circle/domain"
+	"circle/infrastructure/attendance/helper"
 	"net/http"
 	"strconv"
 	"time"
@@ -19,7 +20,8 @@ func NewAttendanceHandler(app *fiber.App, atu domain.AttendanceUsecase) {
 	app.Get("absen/user/:user_id", handler.GetUserLastAttendance)
 	app.Get("absen/user/dashboard/:user_id/:start_at/:end_at", handler.GetUserDashboardAttendance)
 	app.Get("absen/user/:user_id/:start_at/:end_at", handler.GetUserAttendanceData)
-	// app.Get("absen/user/child/dashboard/:parent_id/:start_at/:end_at", handler.GetChildDashboardAttendance)
+	app.Get("absen/user/child/dashboard/:parent_id/:start_at/:end_at", handler.GetChildDashboardAttendance)
+	app.Get("absen/user/child/array/dashboard/:parent_id/:start_at/:end_at", handler.GetChildDashboardAttendanceDetail)
 	
 	app.Post("start/absen", handler.PostClockIn)
 	app.Post("end/absen", handler.PostClockOut)
@@ -58,13 +60,37 @@ func (ath *AttendanceHandler) GetUserAttendanceData(c *fiber.Ctx) error {
 	return c.JSON(domain.WebResponse{Status: http.StatusOK, Data: data, Message: "SUCCESS"})
 }
 
-// func (ath *AttendanceHandler) GetChildDashboardAttendance(c *fiber.Ctx) error {
-// 	parentId 	:= c.Params("parent_id")
-// 	startAt 	:= c.Params("start_at")
-// 	endAt 		:= c.Params("end_at")
+func (ath *AttendanceHandler) GetChildDashboardAttendance(c *fiber.Ctx) error {
+	parentId 	:= c.Params("parent_id")
+	startAt 	:= c.Params("start_at")
+	endAt 		:= c.Params("end_at")
+	startAtTime := startAt + " 00:00:01"
+	endAtTime	:= endAt + " 23:59:59"
 
-// 	return nil
-// }
+	children, err := helper.GetChildren(c, parentId)
+	if err != nil { return c.Status(http.StatusInternalServerError).JSON(domain.WebResponse{Status: 500, Message: err.Error(), Data: nil}) }
+	
+	data, err := ath.AttendanceUsecase.GetChildDashboardAttendance(c.Context(), startAtTime, endAtTime, children)
+	if err != nil { return c.Status(http.StatusInternalServerError).JSON(domain.WebResponse{Status: 500, Message: err.Error(), Data: nil}) }
+	
+	return c.JSON(domain.WebResponse{Status: http.StatusOK, Data: data, Message: "SUCCESS"})
+}
+
+func (ath *AttendanceHandler) GetChildDashboardAttendanceDetail(c *fiber.Ctx) error {
+	parentId 	:= c.Params("parent_id")
+	startAt 	:= c.Params("start_at")
+	endAt 		:= c.Params("end_at")
+	startAtTime := startAt + " 00:00:01"
+	endAtTime	:= endAt + " 23:59:59"
+	
+	children, err := helper.GetChildren(c, parentId)
+	if err != nil { return c.Status(http.StatusInternalServerError).JSON(domain.WebResponse{Status: 500, Message: err.Error(), Data: nil}) }
+
+	data, err := ath.AttendanceUsecase.GetChildDashboardAttendanceDetail(c.Context(), startAtTime, endAtTime, children)
+	if err != nil { return c.Status(http.StatusInternalServerError).JSON(domain.WebResponse{Status: 500, Message: err.Error(), Data: nil}) }
+
+	return c.JSON(domain.WebResponse{Status: http.StatusOK, Data: data, Message: "SUCCESS"})
+}
 
 func (ath *AttendanceHandler) PostClockIn(c *fiber.Ctx) error {
 	var attendance 				domain.Attendance
