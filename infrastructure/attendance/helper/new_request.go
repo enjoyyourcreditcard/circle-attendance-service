@@ -2,6 +2,7 @@ package helper
 
 import (
 	"circle/domain"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,11 +11,16 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+
 func GetChildren(c *fiber.Ctx, parentId string) ([]domain.User, error) {
 	var apiResponse 	domain.ApiResponse
 	var children 		[]domain.User
 
-	client := http.Client{}
+	client := new(http.Client)
+	client.Transport = &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+
 	req, err := http.NewRequest("GET", fmt.Sprintf("https://hris.mncplay.id/user/api/heirarky/%s", parentId), nil)
 	if err != nil { return children, err }
 
