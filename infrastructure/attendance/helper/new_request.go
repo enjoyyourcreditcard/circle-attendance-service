@@ -2,39 +2,26 @@ package helper
 
 import (
 	"circle/domain"
-	"crypto/tls"
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"net/http"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/gofiber/fiber/v2"
 )
-
 
 func GetChildren(c *fiber.Ctx, parentId string) ([]domain.User, error) {
 	var apiResponse 	domain.ApiResponse
 	var children 		[]domain.User
 
-	client := new(http.Client)
-	client.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://hris.mncplay.id/user/api/heirarky/%s", parentId), nil)
-	if err != nil { return children, err }
-
-	res, err := client.Do(req)
+	client := resty.New()
+    resp, err := client.R().
+        Get("https://hris.mncplay.id/user/api/heirarky/" + parentId)
 	if err != nil { return children, err }
 	
-	defer res.Body.Close()
-	responseBody, err := ioutil.ReadAll(res.Body)
+    err = json.Unmarshal(resp.Body(), &apiResponse)
 	if err != nil { return children, err }
 
-	err = json.Unmarshal(responseBody, &apiResponse)
-	if err != nil { return children, err }
-
-	for _, s := range apiResponse.Data.Child { children = append(children, s) }
-
+	data := apiResponse.Data.Child
+	for _, s := range data { children = append(children, s) }
+	
 	return children, err
 }
