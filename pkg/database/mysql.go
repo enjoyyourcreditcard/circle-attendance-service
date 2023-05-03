@@ -24,10 +24,10 @@ func NewMysqlDatabase(dbUser string, dbPassword string, dbHost string, dbPort st
 	helper.PanicIfError(err)
 
 	// Migration
-	dbConn.Migrator().DropTable(&domain.Attendance{})
-	dbConn.Migrator().DropTable(&domain.Assignment{})
-	dbConn.AutoMigrate(&domain.Attendance{})
-	dbConn.AutoMigrate(&domain.Assignment{})
+	//dbConn.Migrator().DropTable(&domain.Attendance{})
+	//dbConn.Migrator().DropTable(&domain.Assignment{})
+	//dbConn.AutoMigrate(&domain.Attendance{})
+	//dbConn.AutoMigrate(&domain.Assignment{})
 	// seeder.Seed(dbConn)
 
 	return dbConn
