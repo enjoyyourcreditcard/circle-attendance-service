@@ -97,7 +97,7 @@ func (au attendanceUsecase) GetChildDashboardAttendance(ctx context.Context, sta
 func (au attendanceUsecase) GetChildDashboardAttendanceDetail(ctx context.Context, startAt string, endAt string, parentID int) ([]domain.DashboardAttendanceChildren, error) {
 
 	children, _ := helper.GetChildren(parentID)
-	fmt.Println(children)
+	//fmt.Println(children)
 
 	//var res domain.DashboardAttendance
 	var dashboards []domain.DashboardAttendanceChildren
