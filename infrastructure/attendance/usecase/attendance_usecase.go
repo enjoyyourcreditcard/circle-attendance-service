@@ -89,7 +89,7 @@ func (au attendanceUsecase) GetChildDashboardAttendance(ctx context.Context, sta
 		dashboard.UneligibleWorkingHour += data.UneligibleWorkingHour
 		dashboard.Penugasan += data.Penugasan
 	}
-	//dashboard.UserData = children
+	dashboard.UserData = children
 
 	return dashboard, err
 }
