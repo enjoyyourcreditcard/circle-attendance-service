@@ -1,4 +1,5 @@
 .DS_Store
 .idea
 .tmp
-#.config.json
+config.json
+.config.json.example
