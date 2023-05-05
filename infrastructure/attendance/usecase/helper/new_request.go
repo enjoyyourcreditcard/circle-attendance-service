@@ -4,6 +4,7 @@ import (
 	"circle/domain"
 	"encoding/json"
 	"github.com/go-resty/resty/v2"
+	"github.com/spf13/viper"
 	"strconv"
 )
 
@@ -39,13 +40,22 @@ type User struct {
 }
 
 func GetChildren(parentID int) ([]domain.User, error) {
+
 	var apiResponse HirarkyApiResponse
 	var children []domain.User
-	parentIDStr := strconv.Itoa(parentID)
+	var baseUrl string
 
+	if viper.GetString(`server.name`) == "local" {
+		baseUrl = "http://localhost"
+	} else {
+		baseUrl = "https://istudio.mncplay.id"
+
+	}
+	parentIDStr := strconv.Itoa(parentID)
+	//fmt.Println()
 	client := resty.New()
 	resp, err := client.R().
-		Get("https://istudio.mncplay.id/user/api/heirarky/" + parentIDStr)
+		Get(baseUrl + "/user/api/heirarky/" + parentIDStr)
 	if err != nil {
 		return children, err
 	}

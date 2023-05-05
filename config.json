@@ -1,5 +1,6 @@
 {
     "server": {
+        "name": "local",
         "address": ":8000"
     },
     "context": {
