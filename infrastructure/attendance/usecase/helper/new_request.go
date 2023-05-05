@@ -47,17 +47,17 @@ func GetChildren(parentID int) ([]domain.User, error) {
 	resp, err := client.R().
 		Get("https://istudio.mncplay.id/user/api/heirarky/" + parentIDStr)
 	if err != nil {
-		return nil, err
+		return children, err
 	}
 
 	err = json.Unmarshal(resp.Body(), &apiResponse)
 	if err != nil {
-		return nil, err
+		return children, err
 	}
 
 	for _, item := range apiResponse.Data.Child {
 		user := domain.User{
-			ID:                  item.ID,
+			ID:                  0,
 			ParentID:            item.ParentID,
 			Image:               item.Image,
 			UnitBisnis:          item.UnitBisnis,
