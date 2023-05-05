@@ -29,13 +29,17 @@ func (ash *AssignmentHandler) GetAssignments(c *fiber.Ctx) error {
 	startAt := c.Query("start_at")
 	endAt := c.Query("end_at")
 	status := c.Query("status")
-	data, err := ash.AssignmentUsecase.GetAssignments(c.Context(), userId, parentId, startAt, endAt, status)
+	resp, err := ash.AssignmentUsecase.GetAssignments(c.Context(), userId, parentId, startAt, endAt, status)
 
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(domain.WebResponse{Status: 500, Message: err.Error(), Data: nil})
 	}
 
-	return c.JSON(domain.WebResponse{Status: http.StatusOK, Data: data, Message: "SUCCESS"})
+	if len(resp) == 0 {
+		return c.JSON(domain.WebResponse{Status: http.StatusOK, Data: make([]string, 0), Message: "SUCCESS"})
+	}
+
+	return c.JSON(domain.WebResponse{Status: http.StatusOK, Data: resp, Message: "SUCCESS"})
 }
 
 func (ash *AssignmentHandler) PostAssignment(c *fiber.Ctx) error {

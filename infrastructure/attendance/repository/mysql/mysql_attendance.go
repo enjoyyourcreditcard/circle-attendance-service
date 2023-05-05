@@ -23,31 +23,39 @@ func (ar mysqlAttendanceRepository) GetUserLastAttendance(ctx context.Context, u
 	return attendance, result.Error
 }
 
-func (ar mysqlAttendanceRepository) GetUserDashboardAttendance(ctx context.Context, userId string, startAt string, endAt string) (domain.DashboardAttendance, error) {
-	var attendance 			domain.Attendance
-	var attendances 		[]domain.Attendance
+func (ar mysqlAttendanceRepository) GetUserDashboardAttendance(ctx context.Context, userId int, startAt string, endAt string) (domain.DashboardAttendance, error) {
+	var attendance domain.Attendance
+	var attendances []domain.Attendance
 	var dashboardAttendance domain.DashboardAttendance
 
-	layout 				:= "02-01-2006 15:04:05"
-	parsedStartAt, err 	:= time.Parse(layout, startAt)
-	if err != nil { return dashboardAttendance, err }
-	
-	parsedEndAt, err := time.Parse(layout, endAt)
-	if err != nil { return dashboardAttendance, err }
-
-	duration 		:= parsedEndAt.Sub(parsedStartAt)
-	period 			:= int(duration.Hours() / 24) + 1
-	weekendCount 	:= 0
-
-	for d := parsedStartAt; d.Before(parsedEndAt); d = d.AddDate(0, 0, 1) {
-		if d.Weekday() == time.Saturday || d.Weekday() == time.Sunday { weekendCount++ }
+	layout := "02-01-2006 15:04:05"
+	parsedStartAt, err := time.Parse(layout, startAt)
+	if err != nil {
+		return dashboardAttendance, err
 	}
 
-	totalRecords 	:= period - weekendCount
-	query 			:= ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Not("DAYOFWEEK(STR_TO_DATE(start_at, '%d-%m-%Y')) IN (1,7)").Session(&gorm.Session{})
-	result 			:= query.Find(&attendances)
-	if result.Error != nil { return dashboardAttendance, result.Error }
-	
+	parsedEndAt, err := time.Parse(layout, endAt)
+	if err != nil {
+		return dashboardAttendance, err
+	}
+
+	duration := parsedEndAt.Sub(parsedStartAt)
+	period := int(duration.Hours()/24) + 1
+	weekendCount := 0
+
+	for d := parsedStartAt; d.Before(parsedEndAt); d = d.AddDate(0, 0, 1) {
+		if d.Weekday() == time.Saturday || d.Weekday() == time.Sunday {
+			weekendCount++
+		}
+	}
+
+	totalRecords := period - weekendCount
+	query := ar.conn.Model(&attendance).Where("start_at BETWEEN ? AND ? AND user_id = ?", startAt, endAt, userId).Not("DAYOFWEEK(STR_TO_DATE(start_at, '%d-%m-%Y')) IN (1,7)").Session(&gorm.Session{})
+	result := query.Find(&attendances)
+	if result.Error != nil {
+		return dashboardAttendance, result.Error
+	}
+
 	result = query.Count(&dashboardAttendance.WorkingDay)
 	result = query.Count(&dashboardAttendance.TotalClockin)
 	result = query.Not("end_at LIKE ?", "%00:00:00").Count(&dashboardAttendance.TotalClockout)
@@ -66,18 +74,18 @@ func (ar mysqlAttendanceRepository) GetUserDashboardAttendance(ctx context.Conte
 	result = query.Where("absen_status = ?", "sick").Count(&dashboardAttendance.Sick)
 	result = query.Where("absen_status = ?", "izin").Count(&dashboardAttendance.Izin)
 
-	numRecords 			:= len(attendances)
-	remainingRecords 	:= totalRecords - numRecords
+	numRecords := len(attendances)
+	remainingRecords := totalRecords - numRecords
 
 	dashboardAttendance.NonWorkingDay = int64(remainingRecords)
-	dashboardAttendance.Alpa 		  = int64(remainingRecords)
+	dashboardAttendance.Alpa = int64(remainingRecords)
 
 	return dashboardAttendance, result.Error
 }
 
 func (ar mysqlAttendanceRepository) GetUserAttendanceData(ctx context.Context, userId string, startAt string, endAt string) ([]domain.Attendance, error) {
 	var attendances []domain.Attendance
-	
+
 	result := ar.conn.Where("user_id = ?", userId).Where("start_at BETWEEN ? AND ?", startAt, endAt).Where("end_at BETWEEN ? AND ?", startAt, endAt).Find(&attendances)
 	return attendances, result.Error
 }
