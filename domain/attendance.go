@@ -53,7 +53,7 @@ type DashboardAttendance struct {
 	InsideOtherArea       int64 `json:"inside_other_area"`
 	Shifting              int64 `json:"shifting"`
 	OfficeHour            int64 `json:"office_hour"`
-	Alpa                  int64 `json:"apla"`
+	Alpa                  int64 `json:"alpa"`
 	Sick                  int64 `json:"sick"`
 	Izin                  int64 `json:"izin"`
 	Leave                 int64 `json:"leave"`
@@ -77,7 +77,7 @@ type DashboardAttendanceChildren struct {
 	InsideOtherArea       int64  `json:"inside_other_area"`
 	Shifting              int64  `json:"shifting"`
 	OfficeHour            int64  `json:"office_hour"`
-	Alpa                  int64  `json:"apla"`
+	Alpa                  int64  `json:"alpa"`
 	Sick                  int64  `json:"sick"`
 	Izin                  int64  `json:"izin"`
 	Leave                 int64  `json:"leave"`
