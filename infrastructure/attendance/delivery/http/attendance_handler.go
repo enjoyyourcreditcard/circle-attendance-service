@@ -1,9 +1,13 @@
 package http
 
 import (
+	"bytes"
 	"circle/domain"
+	"fmt"
+	"github.com/xuri/excelize/v2"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -26,6 +30,10 @@ func NewAttendanceHandler(app *fiber.App, atu domain.AttendanceUsecase) {
 	app.Post("start/absen", handler.PostClockIn)
 	app.Post("end/absen", handler.PostClockOut)
 	app.Post("attendance/notes", handler.PostAttendanceNotes)
+
+	app.Get("absen/excel", handler.handleAbsenExcel)
+	app.Get("absen/user", handler.GetAbsenUser)
+
 }
 
 func (ath *AttendanceHandler) GetUserDashboardAttendance(c *fiber.Ctx) error {
@@ -222,4 +230,111 @@ func (ath *AttendanceHandler) PostAttendanceNotes(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(domain.WebResponse{Status: http.StatusOK, Data: data, Message: "SUCCESS"})
+}
+
+func (ath *AttendanceHandler) handleAbsenExcel(c *fiber.Ctx) error {
+
+	startAtStr := c.Query("start_at")
+	endAtStr := c.Query("end_at")
+	layout := "02-01-2006"
+
+	startAt, err := time.Parse(layout, startAtStr)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	endAt, err := time.Parse(layout, endAtStr)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	name := c.Query("name")
+	nik := c.Query("nik")
+	unitBisnis := c.Query("unit_bisnis")
+	statusKaryawan := c.Query("status_karyawan")
+	regional := c.Query("regional")
+
+	data, err := ath.AttendanceUsecase.HandleAttendanceExcel(c.Context(), name, nik, unitBisnis, statusKaryawan, regional, startAt, endAt)
+
+	file := excelize.NewFile()
+	sheet := "Sheet1"
+
+	file.SetCellValue(sheet, "A1", "nik")
+	file.SetCellValue(sheet, "B1", "name")
+	file.SetCellValue(sheet, "C1", "email")
+	file.SetCellValue(sheet, "D1", "date")
+	file.SetCellValue(sheet, "E1", "clock_in")
+	file.SetCellValue(sheet, "F1", "worktype")
+	file.SetCellValue(sheet, "G1", "timezone")
+
+	for i, each := range data {
+		file.SetCellValue(sheet, fmt.Sprintf("A%d", i+2), each.Nik)
+		file.SetCellValue(sheet, fmt.Sprintf("B%d", i+2), each.Name)
+		file.SetCellValue(sheet, fmt.Sprintf("C%d", i+2), each.Email)
+		file.SetCellValue(sheet, fmt.Sprintf("D%d", i+2), each.Date)
+		file.SetCellValue(sheet, fmt.Sprintf("E%d", i+2), each.ClockIn)
+		file.SetCellValue(sheet, fmt.Sprintf("F%d", i+2), each.Worktype)
+		file.SetCellValue(sheet, fmt.Sprintf("G%d", i+2), each.Timezone)
+	}
+
+	buffer := bytes.Buffer{}
+	if _, err := file.WriteTo(&buffer); err != nil {
+		return err
+	}
+
+	response := c.Response()
+	response.Header.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	response.Header.Set("Content-Disposition", "attachment; filename=people.xlsx")
+
+	if _, err := buffer.WriteTo(response.BodyWriter()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ath *AttendanceHandler) GetAbsenUser(c *fiber.Ctx) error {
+	//validate := validator.New()
+
+	startAtStr := c.Query("start_at")
+	if startAtStr == "" {
+		return c.Status(http.StatusUnprocessableEntity).JSON(domain.WebResponse{Status: 500, Message: "start_at is required", Data: nil})
+	}
+
+	endAtStr := c.Query("end_at")
+	if endAtStr == "" {
+		return c.Status(http.StatusUnprocessableEntity).JSON(domain.WebResponse{Status: 500, Message: "end_at is required", Data: nil})
+	}
+
+	layout := "02-01-2006"
+	userId := c.Query("user_id")
+	var arr []int
+	if userId != "" {
+		strArr := strings.Split(userId, ",")
+		arr = make([]int, len(strArr))
+		for i, s := range strArr {
+			num, err := strconv.Atoi(s)
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+			arr[i] = num
+		}
+	}
+
+	startAt, err := time.Parse(layout, startAtStr)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	endAt, err := time.Parse(layout, endAtStr)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	attendance, err := ath.AttendanceUsecase.GetAttendanceByUserID(c.Context(), startAt, endAt, arr)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(domain.WebResponse{Status: 500, Message: err.Error(), Data: nil})
+	}
+	return c.Status(200).JSON(domain.WebResponse{Status: 200, Message: "SUCCESS", Data: attendance})
 }

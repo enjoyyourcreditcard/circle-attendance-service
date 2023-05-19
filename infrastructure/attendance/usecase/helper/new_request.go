@@ -49,10 +49,8 @@ func GetChildren(parentID int) ([]domain.User, error) {
 		baseUrl = "http://localhost"
 	} else {
 		baseUrl = "https://istudio.mncplay.id"
-
 	}
 	parentIDStr := strconv.Itoa(parentID)
-	//fmt.Println()
 	client := resty.New()
 	resp, err := client.R().
 		Get(baseUrl + "/user/api/heirarky/" + parentIDStr)
@@ -67,7 +65,7 @@ func GetChildren(parentID int) ([]domain.User, error) {
 
 	for _, item := range apiResponse.Data.Child {
 		user := domain.User{
-			ID:                  0,
+			ID:                  item.ID,
 			ParentID:            item.ParentID,
 			Image:               item.Image,
 			UnitBisnis:          item.UnitBisnis,
@@ -89,8 +87,8 @@ func GetChildren(parentID int) ([]domain.User, error) {
 			Privilege:           make([]string, 0),
 			AdditionalPrivilege: make([]string, 0),
 		}
-
 		children = append(children, user)
+
 	}
 
 	return children, err

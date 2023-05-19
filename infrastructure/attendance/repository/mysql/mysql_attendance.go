@@ -3,32 +3,34 @@ package mysql
 import (
 	"circle/domain"
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
 )
 
-type mysqlAttendanceRepository struct {
+type mysqlmysqlAttendanceRepository struct {
 	conn *gorm.DB
 }
 
-func NewMysqlAttendanceRepository(conn *gorm.DB) domain.AttendanceRepository {
-	return &mysqlAttendanceRepository{conn}
+func NewMysqlmysqlAttendanceRepository(conn *gorm.DB) domain.AttendanceMysqlRepository {
+	return &mysqlmysqlAttendanceRepository{conn}
 }
 
-func (ar mysqlAttendanceRepository) GetUserLastAttendance(ctx context.Context, userId string) (domain.Attendance, error) {
+func (ar mysqlmysqlAttendanceRepository) GetUserLastAttendance(ctx context.Context, userId string) (domain.Attendance, error) {
 	var attendance domain.Attendance
 
 	result := ar.conn.Where("user_id = ?", userId).Last(&attendance)
 	return attendance, result.Error
 }
 
-func (ar mysqlAttendanceRepository) GetUserDashboardAttendance(ctx context.Context, userId int, startAt string, endAt string) (domain.DashboardAttendance, error) {
+func (ar mysqlmysqlAttendanceRepository) GetUserDashboardAttendance(ctx context.Context, userId int, startAt string, endAt string) (domain.DashboardAttendance, error) {
 	var attendance domain.Attendance
 	var attendances []domain.Attendance
 	var dashboardAttendance domain.DashboardAttendance
 
-	layout := "02-01-2006 15:04:05"
+	layout := "02-01-2006"
 	parsedStartAt, err := time.Parse(layout, startAt)
 	if err != nil {
 		return dashboardAttendance, err
@@ -83,14 +85,29 @@ func (ar mysqlAttendanceRepository) GetUserDashboardAttendance(ctx context.Conte
 	return dashboardAttendance, result.Error
 }
 
-func (ar mysqlAttendanceRepository) GetUserAttendanceData(ctx context.Context, userId string, startAt string, endAt string) ([]domain.Attendance, error) {
-	var attendances []domain.Attendance
+func (ar mysqlmysqlAttendanceRepository) GetUserAttendanceData(ctx context.Context, userId string, startAt string, endAt string) ([]domain.Attendance, error) {
 
-	result := ar.conn.Where("user_id = ?", userId).Where("start_at BETWEEN ? AND ?", startAt, endAt).Where("end_at BETWEEN ? AND ?", startAt, endAt).Find(&attendances)
+	var attendances []domain.Attendance
+	query := ar.conn.Model(&attendances)
+	if len(userId) != 0 {
+		query.Where("user_id = ?", userId)
+	}
+	//start :=
+	start, err := time.Parse("02-01-2006", strings.Split(startAt, " ")[0])
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+
+	end, err := time.Parse("02-01-2006", strings.Split(endAt, " ")[0])
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+	result := query.Where("STR_TO_DATE(start_at, '%d-%m-%Y') BETWEEN ? AND ?", start.Format("2006-01-02"), end.Format("2006-01-02")).Debug().Find(&attendances)
 	return attendances, result.Error
+
 }
 
-func (ar mysqlAttendanceRepository) CheckAbsen(ctx context.Context, userId string, formatedCurrentDate string) (int, error) {
+func (ar mysqlmysqlAttendanceRepository) CheckAbsen(ctx context.Context, userId string, formatedCurrentDate string) (int, error) {
 	var counted int64
 	var Attendance domain.Attendance
 
@@ -99,21 +116,33 @@ func (ar mysqlAttendanceRepository) CheckAbsen(ctx context.Context, userId strin
 	return result, err.Error
 }
 
-func (ar mysqlAttendanceRepository) CreateAbsen(ctx context.Context, attendance *domain.Attendance) (*domain.Attendance, error) {
+func (ar mysqlmysqlAttendanceRepository) CreateAbsen(ctx context.Context, attendance *domain.Attendance) (*domain.Attendance, error) {
 	result := ar.conn.Create(attendance)
 	return attendance, result.Error
 }
 
-func (ar mysqlAttendanceRepository) UpdateAbsen(ctx context.Context, endAttendance *domain.EndAttendance, attendanceId int) error {
+func (ar mysqlmysqlAttendanceRepository) UpdateAbsen(ctx context.Context, endAttendance *domain.EndAttendance, attendanceId int) error {
 	var attendance domain.Attendance
 
 	result := ar.conn.Model(attendance).Where("id = ?", attendanceId).Updates(*endAttendance)
 	return result.Error
 }
 
-func (ar mysqlAttendanceRepository) PostAttendanceNotes(ctx context.Context, userId string, notes string) error {
+func (ar mysqlmysqlAttendanceRepository) PostAttendanceNotes(ctx context.Context, userId string, notes string) error {
 	var attendance domain.Attendance
 
 	result := ar.conn.Where("user_id = ?", userId).Last(&attendance).Update("notes", notes)
 	return result.Error
+}
+
+func (ar mysqlmysqlAttendanceRepository) GetAttendanceByUserIDAndDateRange(ctx context.Context, userId []int, startAt time.Time, endAt time.Time) ([]domain.Attendance, error) {
+	var attendances []domain.Attendance
+	query := ar.conn.Model(&attendances)
+
+	if len(userId) != 0 {
+		query.Where("user_id IN (?)", userId)
+	}
+	result := query.Where("STR_TO_DATE(start_at, '%d-%m-%Y') BETWEEN ? AND ?", startAt.Format("2006-01-02"), endAt.Format("2006-01-02")).
+		Find(&attendances)
+	return attendances, result.Error
 }

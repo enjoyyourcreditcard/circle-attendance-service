@@ -27,7 +27,7 @@ func NewMysqlDatabase(dbUser string, dbPassword string, dbHost string, dbPort st
 	//dbConn.Migrator().DropTable(&domain.Assignment{})
 	//dbConn.AutoMigrate(&domain.Attendance{})
 	//dbConn.AutoMigrate(&domain.Assignment{})
-	// seeder.Seed(dbConn)
+	//seeder.Seed(dbConn)
 
 	return dbConn
 }

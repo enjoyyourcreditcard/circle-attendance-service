@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"time"
 )
 
 type Attendance struct {
@@ -26,6 +27,16 @@ type Attendance struct {
 	StatusStart          string `json:"status_start" gorm:"type:varchar(255)"`
 	StatusEnd            string `json:"status_end" gorm:"type:varchar(255)"`
 	CreatedAt            string `json:"created_at" gorm:"type:varchar(255)"`
+}
+
+type AttendanceExcel struct {
+	Nik      string `json:"nik"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Date     string `json:"date"`
+	ClockIn  string `json:"clock_in"`
+	Timezone string `json:"timezone"`
+	Worktype string `json:"worktype"`
 }
 
 type EndAttendance struct {
@@ -87,7 +98,7 @@ type DashboardAttendanceChildren struct {
 }
 
 type User struct {
-	ID                  int      `json:"id"`
+	ID                  int      `json:"id" gorm:"primaryKey"`
 	ParentID            string   `json:"parent_id"`
 	Image               string   `json:"image"`
 	UnitBisnis          string   `json:"unit_bisnis"`
@@ -110,25 +121,39 @@ type User struct {
 	AdditionalPrivilege []string `json:"additional_privilege"`
 }
 
+type UserAPIResponse struct {
+	ID    int    `json:"id"`
+	Nik   string `json:"nik"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
 type AttendanceUsecase interface {
 	GetUserLastAttendance(context.Context, string) (Attendance, error)
 	GetUserDashboardAttendance(context.Context, int, string, string) (DashboardAttendance, error)
 	GetUserAttendanceData(context.Context, string, string, string) ([]Attendance, error)
 	GetChildDashboardAttendance(context.Context, string, string, int) (DashboardAttendanceChildren, error)
 	GetChildDashboardAttendanceDetail(context.Context, string, string, int) ([]DashboardAttendanceChildren, error)
+	GetAttendanceByUserID(ctx context.Context, startAt time.Time, endAt time.Time, userId []int) ([]Attendance, error)
 
 	PostClockIn(context.Context, *Attendance, string) (string, error)
 	PostClockOut(context.Context, *EndAttendance, string) (string, error)
 	PostAttendanceNotes(context.Context, string, string) (string, error)
+
+	HandleAttendanceExcel(context.Context, string, string, string, string, string, time.Time, time.Time) ([]AttendanceExcel, error)
 }
 
-type AttendanceRepository interface {
+type AttendanceMysqlRepository interface {
 	CheckAbsen(context.Context, string, string) (int, error)
 	GetUserLastAttendance(context.Context, string) (Attendance, error)
 	GetUserDashboardAttendance(context.Context, int, string, string) (DashboardAttendance, error)
 	GetUserAttendanceData(context.Context, string, string, string) ([]Attendance, error)
-
+	GetAttendanceByUserIDAndDateRange(ctx context.Context, userId []int, startAt time.Time, endAt time.Time) ([]Attendance, error)
 	CreateAbsen(context.Context, *Attendance) (*Attendance, error)
 	UpdateAbsen(context.Context, *EndAttendance, int) error
 	PostAttendanceNotes(context.Context, string, string) error
+}
+
+type AttendanceAPIRepository interface {
+	Find(ctx context.Context, name string, nik string, unit_bisnis string, status_karyawan string, regional string) ([]UserAPIResponse, error)
 }

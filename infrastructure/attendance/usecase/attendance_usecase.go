@@ -9,19 +9,22 @@ import (
 )
 
 type attendanceUsecase struct {
-	attendanceRepo domain.AttendanceRepository
+	mysqlAttendanceRepo domain.AttendanceMysqlRepository
+	apiAttendanceRepo   domain.AttendanceAPIRepository
+
 	contextTimeout time.Duration
 }
 
-func NewAttendanceUsecase(a domain.AttendanceRepository, timeout time.Duration) domain.AttendanceUsecase {
+func NewAttendanceUsecase(m domain.AttendanceMysqlRepository, a domain.AttendanceAPIRepository, timeout time.Duration) domain.AttendanceUsecase {
 	return &attendanceUsecase{
-		attendanceRepo: a,
-		contextTimeout: timeout,
+		mysqlAttendanceRepo: m,
+		apiAttendanceRepo:   a,
+		contextTimeout:      timeout,
 	}
 }
 
 func (au attendanceUsecase) GetUserLastAttendance(ctx context.Context, userId string) (domain.Attendance, error) {
-	res, err := au.attendanceRepo.GetUserLastAttendance(ctx, userId)
+	res, err := au.mysqlAttendanceRepo.GetUserLastAttendance(ctx, userId)
 	if err != nil {
 		res = domain.Attendance{}
 		res.UserId = userId
@@ -33,30 +36,27 @@ func (au attendanceUsecase) GetUserLastAttendance(ctx context.Context, userId st
 }
 
 func (au attendanceUsecase) GetUserDashboardAttendance(ctx context.Context, userId int, startAt string, endAt string) (domain.DashboardAttendance, error) {
-	res, err := au.attendanceRepo.GetUserDashboardAttendance(ctx, userId, startAt, endAt)
+	res, err := au.mysqlAttendanceRepo.GetUserDashboardAttendance(ctx, userId, startAt, endAt)
 	return res, err
 }
 
 func (au attendanceUsecase) GetUserAttendanceData(ctx context.Context, userId string, startAt string, endAt string) ([]domain.Attendance, error) {
-	res, err := au.attendanceRepo.GetUserAttendanceData(ctx, userId, startAt, endAt)
+	res, err := au.mysqlAttendanceRepo.GetUserAttendanceData(ctx, userId, startAt, endAt)
 	return res, err
 }
 
 func (au attendanceUsecase) GetChildDashboardAttendance(ctx context.Context, startAt string, endAt string, parentID int) (domain.DashboardAttendanceChildren, error) {
 	var dashboardChildren []domain.DashboardAttendance
 	var dashboard domain.DashboardAttendanceChildren
-
 	children, err := helper.GetChildren(parentID)
+
 	if err != nil {
 		return domain.DashboardAttendanceChildren{}, err
-		fmt.Println(err)
 	}
-
-	fmt.Println(children)
 
 	for _, child := range children {
 		userId := child.ID
-		res, err := au.attendanceRepo.GetUserDashboardAttendance(ctx, userId, startAt, endAt)
+		res, err := au.mysqlAttendanceRepo.GetUserDashboardAttendance(ctx, userId, startAt, endAt)
 		if err != nil {
 			fmt.Println(err)
 			//return domain.DashboardAttendance{}, err
@@ -64,8 +64,6 @@ func (au attendanceUsecase) GetChildDashboardAttendance(ctx context.Context, sta
 
 		dashboardChildren = append(dashboardChildren, res)
 	}
-	//fmt.Println(children)
-	//fmt.Println(children)
 
 	for _, data := range dashboardChildren {
 		dashboard.WorkingDay += data.WorkingDay
@@ -108,7 +106,7 @@ func (au attendanceUsecase) GetChildDashboardAttendanceDetail(ctx context.Contex
 
 	for _, child := range children {
 		userId := child.ID
-		res, _ := au.attendanceRepo.GetUserDashboardAttendance(ctx, userId, startAt, endAt)
+		res, _ := au.mysqlAttendanceRepo.GetUserDashboardAttendance(ctx, userId, startAt, endAt)
 
 		dashboard := domain.DashboardAttendanceChildren{
 			WorkingDay:            res.WorkingDay,
@@ -146,7 +144,7 @@ func (au attendanceUsecase) PostClockIn(ctx context.Context, attendance *domain.
 	var err error
 	var newAttendance *domain.Attendance
 
-	checkAbsen, err := au.attendanceRepo.CheckAbsen(ctx, attendance.UserId, formatedCurrentDate)
+	checkAbsen, err := au.mysqlAttendanceRepo.CheckAbsen(ctx, attendance.UserId, formatedCurrentDate)
 	if err != nil {
 		return "", err
 	}
@@ -154,14 +152,14 @@ func (au attendanceUsecase) PostClockIn(ctx context.Context, attendance *domain.
 	if checkAbsen > 0 {
 		res = "Anda sudah clock in"
 	} else {
-		newAttendance, err = au.attendanceRepo.CreateAbsen(ctx, attendance)
+		newAttendance, err = au.mysqlAttendanceRepo.CreateAbsen(ctx, attendance)
 		res = newAttendance.StartAt
 	}
 	return res, err
 }
 
 func (au attendanceUsecase) PostClockOut(ctx context.Context, endAttendance *domain.EndAttendance, userId string) (string, error) {
-	latestAttendance, err := au.attendanceRepo.GetUserLastAttendance(ctx, userId)
+	latestAttendance, err := au.mysqlAttendanceRepo.GetUserLastAttendance(ctx, userId)
 	if err != nil {
 		return "", err
 	}
@@ -193,7 +191,7 @@ func (au attendanceUsecase) PostClockOut(ctx context.Context, endAttendance *dom
 	workingHour := fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds)
 
 	endAttendance.WorkingHour = workingHour
-	err = au.attendanceRepo.UpdateAbsen(ctx, endAttendance, attendanceId)
+	err = au.mysqlAttendanceRepo.UpdateAbsen(ctx, endAttendance, attendanceId)
 	if err != nil {
 		return "", err
 	}
@@ -204,11 +202,26 @@ func (au attendanceUsecase) PostClockOut(ctx context.Context, endAttendance *dom
 }
 
 func (au attendanceUsecase) PostAttendanceNotes(ctx context.Context, userId string, notes string) (string, error) {
-	err := au.attendanceRepo.PostAttendanceNotes(ctx, userId, notes)
+	err := au.mysqlAttendanceRepo.PostAttendanceNotes(ctx, userId, notes)
 	if err != nil {
 		return "", err
 	}
 
 	res := "Notes berhasil ditambahkan"
 	return res, err
+}
+
+func (au attendanceUsecase) HandleAttendanceExcel(ctx context.Context, name string, nik string, unit_bisnis string, status_karyawan string, regional string, startAt time.Time, endAt time.Time) ([]domain.AttendanceExcel, error) {
+
+	user, err := au.apiAttendanceRepo.Find(ctx, name, nik, unit_bisnis, status_karyawan, regional)
+	userId := helper.ConvertUserArrToUserID(user)
+	attendances, err := au.mysqlAttendanceRepo.GetAttendanceByUserIDAndDateRange(ctx, userId, startAt, endAt)
+	attendanceExcel := helper.CombineUserAndAttendance(user, attendances)
+
+	return attendanceExcel, err
+}
+
+func (au attendanceUsecase) GetAttendanceByUserID(ctx context.Context, startAt time.Time, endAt time.Time, userId []int) ([]domain.Attendance, error) {
+	attendances, err := au.mysqlAttendanceRepo.GetAttendanceByUserIDAndDateRange(ctx, userId, startAt, endAt)
+	return attendances, err
 }
