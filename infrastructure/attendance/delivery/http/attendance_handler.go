@@ -45,8 +45,8 @@ func (ath *AttendanceHandler) GetUserDashboardAttendance(c *fiber.Ctx) error {
 
 	startAt := c.Params("start_at")
 	endAt := c.Params("end_at")
-	startAtTime := startAt + " 00:00:01"
-	endAtTime := endAt + " 23:59:59"
+	startAtTime := startAt
+	endAtTime := endAt
 	data, err := ath.AttendanceUsecase.GetUserDashboardAttendance(c.Context(), userIdInt, startAtTime, endAtTime)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(domain.WebResponse{Status: 500, Message: err.Error(), Data: nil})
