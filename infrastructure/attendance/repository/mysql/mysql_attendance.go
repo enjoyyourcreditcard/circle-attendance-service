@@ -59,7 +59,7 @@ func (ar mysqlmysqlAttendanceRepository) GetUserDashboardAttendance(ctx context.
 	result = query.Where("reason LIKE ?", "%early_in%").Count(&dashboardAttendance.EarlyIn)
 	result = query.Where("reason LIKE ?", "%early_out%").Count(&dashboardAttendance.EarlyOut)
 	result = query.Where("status_start = ?", "inside_area").Count(&dashboardAttendance.InsideArea)
-	result = query.Not("status_start != ?", "inside_area").Count(&dashboardAttendance.OutsideArea)
+	result = query.Where("status_start = ?", "outside_area").Count(&dashboardAttendance.OutsideArea)
 	result = query.Where("status_start = ?", "inside_other_area").Count(&dashboardAttendance.InsideOtherArea)
 	result = query.Where("type = ?", "shifting").Count(&dashboardAttendance.Shifting)
 	result = query.Not("type = ?", "shifting").Count(&dashboardAttendance.OfficeHour)
@@ -84,7 +84,9 @@ func (ar mysqlmysqlAttendanceRepository) GetUserAttendanceData(ctx context.Conte
 	if len(userId) != 0 {
 		query.Where("user_id = ?", userId)
 	}
+
 	//start :=
+
 	start, err := time.Parse("02-01-2006", strings.Split(startAt, " ")[0])
 	if err != nil {
 		fmt.Println("Error:", err)
